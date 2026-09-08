@@ -1,0 +1,29 @@
+name: Build and check
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    env:
+      PLATFORMIO_CORE_DIR: ${{ github.workspace }}/.pio-core
+      PLATFORMIO_CACHE_DIR: ${{ github.workspace }}/.cache/platformio
+      PIP_CACHE_DIR: ${{ github.workspace }}/.cache/pip
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Prepare project tools
+        run: |
+          mkdir -p .tmp
+          python -m venv .tools/pio
+          TMPDIR="$PWD/.tmp" .tools/pio/bin/pip install platformio==6.1.18
+      - name: Build firmware
+        run: TMPDIR="$PWD/.tmp" .tools/pio/bin/pio run
+      - name: Check browser protocol
+        run: node --test tests/*.test.js

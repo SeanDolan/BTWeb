@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101b29">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; worker-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'self'">
+  <title>BTWeb · LED control</title>
+  <link rel="stylesheet" href="./style.css">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <script type="module" src="./app.js"></script>
+</head>
+<body>
+  <main>
+    <p class="eyebrow">BTWEB / ESP32</p>
+    <h1>A little light.<br>A direct connection.</h1>
+    <p>Control your board over Bluetooth. No Wi-Fi connection to the board is needed.</p>
+    <section aria-label="Connection">
+      <p id="connection" role="status">Disconnected</p>
+      <div class="actions">
+        <button id="connect">Connect board</button>
+        <button id="disconnect" disabled>Disconnect</button>
+      </div>
+    </section>
+    <section aria-label="LED controls">
+      <h2>Choose a colour</h2>
+      <div class="colours">
+        <button data-colour="255,0,0" class="red" disabled>Red</button>
+        <button data-colour="0,255,0" class="green" disabled>Green</button>
+        <button data-colour="0,0,255" class="blue" disabled>Blue</button>
+        <button data-colour="0,0,0" disabled>Off</button>
+      </div>
+      <p id="state" aria-live="polite">Connect to read the board’s LED state.</p>
+      <p id="message" role="status"></p>
+    </section>
+    <section aria-label="Offline preparation">
+      <h2>Before heading off-grid</h2>
+      <p id="offline" role="status">Checking offline storage…</p>
+      <p>Bookmark this page in Bluefy. Before travel, disable Wi-Fi and mobile data, leave Bluetooth on, close and reopen Bluefy, then reconnect and change a colour. The cache check alone cannot verify this.</p>
+      <p>If offline storage is unavailable or cleared, you will need internet to load this page again.</p>
+    </section>
+    <footer>Keep Bluefy in the foreground while controlling your board.</footer>
+  </main>
+</body>
+</html>

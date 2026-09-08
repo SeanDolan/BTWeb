@@ -1,0 +1,9 @@
+{
+  "name": "BTWeb LED Controller",
+  "short_name": "BTWeb",
+  "start_url": "./",
+  "scope": "./",
+  "display": "browser",
+  "background_color": "#101b29",
+  "theme_color": "#101b29"
+}

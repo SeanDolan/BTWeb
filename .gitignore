@@ -1,0 +1,9 @@
+.pio/
+.pio-core/
+.tools/
+.cache/
+.tmp/
+.vscode/
+__pycache__/
+*.pyc
+platformio.local.ini

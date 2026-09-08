@@ -1,0 +1,16 @@
+:root { color-scheme: dark; font-family: system-ui, sans-serif; background: #101b29; color: #edf2fa; }
+* { box-sizing: border-box; }
+body { margin: 0; }
+main { max-width: 660px; padding: 40px 22px; margin: auto; }
+.eyebrow { letter-spacing: .18em; color: #90b5e5; font-size: .8rem; }
+h1 { font-size: clamp(2.1rem, 8vw, 3.3rem); line-height: 1.08; letter-spacing: -.04em; }
+h2 { font-size: 1.15rem; }
+p, footer { line-height: 1.6; color: #c2cedd; }
+section { padding: 18px 0; border-top: 1px solid #344255; margin-top: 26px; }
+.actions, .colours { display: flex; flex-wrap: wrap; gap: 12px; }
+button { font: inherit; font-weight: 650; border: 1px solid #617188; border-radius: 12px; padding: 14px 20px; background: #26374f; color: white; min-height: 48px; cursor: pointer; }
+button:disabled { opacity: .4; cursor: default; }
+button:focus-visible { outline: 3px solid #fbd98a; outline-offset: 4px; }
+.red { background: #7c2935; }.green { background: #175742; }.blue { background: #24488a; }
+#message { min-height: 1.6em; color: #fbd98a; }
+footer { font-size: .85rem; }
