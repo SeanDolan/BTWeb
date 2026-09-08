@@ -6,7 +6,7 @@ Reusable ESP32 BLE control library and a Bluefy web controller, with an onboard 
 
 The ESP32 hosts a **BLE GATT service**, not an HTTP website over Bluetooth. Bluefy loads the controller from HTTPS, then sends commands directly over BLE. The firmware needs neither internet access nor a Wi-Fi access point.
 
-The controller caches all its own files for offline reopening where the installed Bluefy version supports service workers. Load it before travelling and perform the offline test below. **A fresh or cleared browser cannot fetch this page from the board over Bluetooth.** If first use must work with no previously loaded page, this architecture does not meet that requirement: use an installed native BLE controller, or a Wi-Fi-hosted controller instead.
+The controller silently caches its files where service workers are supported. Bluefy may also retain the page through its own browser cache; lack of service-worker support does not prove offline reopening will fail. Load it before travelling and perform the offline test below. **A fresh or cleared browser cannot fetch this page from the board over Bluetooth.** If first use must work with no previously loaded page, this architecture does not meet that requirement: use an installed native BLE controller, or a Wi-Fi-hosted controller instead.
 
 Bluefy's developer specifies HTTPS for Web Bluetooth: [Bluefy on the App Store](https://apps.apple.com/us/app/bluefy-web-ble-browser/id1492822055). Offline caching support on the user's iPhone still requires physical testing.
 
@@ -37,12 +37,12 @@ All web assets are local to the repository; there are no CDNs, analytics or runt
 
 ## Remote/offline acceptance test
 
-1. Load the Pages URL in Bluefy while online. Wait for **Controller files cached**. Bookmark that exact URL in Bluefy.
+1. Load the Pages URL fully in Bluefy while online. Bookmark that exact URL in Bluefy. Caching runs silently where supported; the page displays no offline-readiness claim.
 2. Turn off Wi-Fi and mobile data, or enable airplane mode and re-enable Bluetooth.
 3. Close and reopen Bluefy, open the bookmark, connect, and change all three colours.
 4. Repeat after restarting the iPhone and ESP32. Keep Bluefy in the foreground during use.
 
-If the cache check fails or reopening fails, offline Bluefy use is not validated. Do not clear browser storage or use private browsing for the cached controller. iOS/browser storage eviction can remove downloaded assets. A home-screen shortcut may open Safari rather than Bluefy; use the Bluefy bookmark. Firmware is independent of this cache, but the phone still needs its controller code.
+If reopening fails, offline Bluefy use is not validated. Do not clear browser storage or use private browsing for the cached controller. iOS/browser storage eviction can remove downloaded assets. A home-screen shortcut may open Safari rather than Bluefy; use the Bluefy bookmark. Firmware is independent of this cache, but the phone still needs its controller code.
 
 ## LED behaviour
 

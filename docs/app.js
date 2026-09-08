@@ -48,27 +48,9 @@ colours.forEach(button => button.addEventListener('click', () => run(async () =>
 if (!supported) byId('message').textContent = 'Open the HTTPS page in Bluefy with Bluetooth permission enabled.';
 updateButtons();
 
-async function prepareOffline() {
-  if (!window.isSecureContext || !('serviceWorker' in navigator)) {
-    throw new Error('Offline storage is unavailable in this browser. Do not rely on offline reopening.');
-  }
-  await navigator.serviceWorker.register('./sw.js');
-  // A timeout handles restricted browsers without leaving a perpetual "checking" label.
-  const worker = await Promise.race([
-    navigator.serviceWorker.ready,
-    new Promise((_, reject) => setTimeout(() => reject(new Error('Offline setup timed out. Reopen while online to retry.')), 10000)),
-  ]);
-  const cached = await new Promise((resolve, reject) => {
-    const channel = new MessageChannel();
-    const timer = setTimeout(() => { channel.port1.close(); reject(new Error('Unable to verify the offline cache.')); }, 3000);
-    channel.port1.onmessage = event => {
-      clearTimeout(timer);
-      channel.port1.close();
-      resolve(event.data?.ready === true);
-    };
-    worker.active.postMessage({ type: 'CHECK_CACHE' }, [channel.port2]);
+// Cache the controller where supported; browser storage support is not a UI error.
+if (window.isSecureContext && 'serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').catch(() => {
+    // The browser may still retain the page through its own cache.
   });
-  if (!cached) throw new Error('Offline cache is incomplete. Reload with internet access.');
-  byId('offline').textContent = 'Controller files cached. Now test reopening and Bluetooth control with internet disabled.';
 }
-prepareOffline().catch(error => { byId('offline').textContent = error.message; });
