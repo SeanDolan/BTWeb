@@ -30,8 +30,7 @@ export async function latestRelease(fetcher = fetch, root = SITE_ROOT) {
 }
 
 export function installUpdates(document, location, fetcher = fetch) {
-  document.getElementById('commit').textContent = COMMIT === 'development'
-    ? 'Development build' : `Commit ${COMMIT.slice(0, 8)}`;
+  document.getElementById('commit').textContent = COMMIT;
   const button = document.getElementById('reload-cache');
   const status = document.getElementById('reload-status');
   button.addEventListener('click', async () => {
