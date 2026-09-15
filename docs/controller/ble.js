@@ -55,6 +55,7 @@ export class BTWebClient {
       this.stage = 'BTWeb service discovery';
       const service = await server.getPrimaryService(UUID.service);
       check();
+      this.service = service;
       this.stage = 'BTWeb characteristic discovery';
       const command = await service.getCharacteristic(UUID.command);
       check();
@@ -143,7 +144,7 @@ export class BTWebClient {
     try {
       // Promise.all observes early disconnect/rejection even while WRITE is pending.
       const command = this.command;
-      const write = Promise.resolve().then(() => command.writeValueWithResponse
+      const write = this.enqueueGatt(() => command.writeValueWithResponse
         ? command.writeValueWithResponse(bytes) : command.writeValue(bytes));
       const [, state] = await Promise.race([Promise.all([write, ack]), timeout]);
       return state;
@@ -162,6 +163,12 @@ export class BTWebClient {
     if (device?.gatt.connected) device.gatt.disconnect();
   }
 
+  enqueueGatt(operation) {
+    const result = (this.gattQueue || Promise.resolve()).then(operation);
+    this.gattQueue = result.catch(() => {});
+    return result;
+  }
+
   cleanup() {
     this.cancelDiscovery?.();
     this.ready = false;
@@ -169,7 +176,7 @@ export class BTWebClient {
     this.pending = null;
     this.state?.removeEventListener('characteristicvaluechanged', this.receive);
     this.device?.removeEventListener('gattserverdisconnected', this.lost);
-    this.state = this.command = this.device = null;
+    this.state = this.command = this.device = this.service = null;
     this.onDisconnect();
   }
 }

@@ -1,6 +1,6 @@
 // Bump this version whenever any controller asset changes.
 const CACHE = `btweb-controller-development:${self.registration.scope}`;
-const ASSETS = ['./', './index.html', './style.css', './controller.html', './controller/app.js', './controller/ble.js', './controller/devices.js', './controller/build.js', './controller/updates.js', './manifest.webmanifest'];
+const ASSETS = ['./', './index.html', './style.css', './controller.html', './controller/app.js', './controller/ble.js', './controller/devices.js', './controller/build.js', './controller/updates.js', './controller/wifi.js', './manifest.webmanifest'];
 const assetUrls = ASSETS.map(path => new URL(path, self.registration.scope).href);
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(assetUrls)));

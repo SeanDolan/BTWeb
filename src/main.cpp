@@ -2,8 +2,10 @@
 #include "RgbLed.h"
 #include <BTWeb.h>
 #include "BoardConfig.h"
+#include "WifiScan.h"
 
 BTWeb bt;
+WifiScan wifiScan(bt);
 RgbLed pixel;
 bool started = false;
 bool wasConnected = false;
@@ -24,7 +26,12 @@ void setup() {
     const bool ledReady = BoardConfig::rgbVerified &&
         pixel.begin(BoardConfig::rgbDataPin, BoardConfig::brightness);
     if (ledReady) { showStatus({12, 0, 0}); pixel.poll(); }
-    started = bt.begin("MNQ-BT-0001", ledReady ? applyColor : nullptr);
+    WiFi.persistent(false);
+    WiFi.setAutoReconnect(false);
+    const bool wifiReady = WiFi.mode(WIFI_STA);
+    if (!wifiReady) Serial.println("Wi-Fi station initialisation failed");
+    started = bt.begin("MNQ-BT-0001", ledReady ? applyColor : nullptr, nullptr,
+        WifiScan::attach, &wifiScan);
     if (!ledReady) Serial.println("RGB unavailable: check pin confirmation and RMT setup");
     Serial.println(started ? "BTWeb advertising" : "BTWeb failed to start; reset to retry");
     if (!BoardConfig::rgbVerified) Serial.println("RGB disabled: board pinout confirmation required");
@@ -44,6 +51,7 @@ void loop() {
             showStatus(statusOn ? btweb::Color{0, 0, 32} : btweb::Color{});
         }
         bt.poll(); // Commands override connected status until disconnection.
+        wifiScan.poll(); // Async scan completion and one queued BLE request.
     }
     pixel.poll(); // Starts a pending LED frame only when the hardware is idle.
     // Add bounded application work here. Queue ESP-NOW callbacks before processing.

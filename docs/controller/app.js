@@ -1,6 +1,7 @@
 import { DeviceRegistry } from './devices.js';
 import { SITE_ROOT } from './build.js';
 import { installUpdates } from './updates.js';
+import { installWifi } from './wifi.js';
 
 const byId = id => document.getElementById(id);
 const supported = window.isSecureContext && Boolean(navigator.bluetooth);
@@ -14,8 +15,10 @@ let storage;
 try { storage = window.localStorage; } catch { /* Optional. */ }
 const views = new Map();
 const registry = new DeviceRegistry(navigator.bluetooth, storage, render);
+let refreshWifi;
 
 function render() {
+  refreshWifi?.();
   for (const [id, view] of views) {
     if (!registry.rows.has(id)) { view.tr.remove(); views.delete(id); }
   }
@@ -86,6 +89,7 @@ byId('connect').addEventListener('click', async () => {
 });
 if (!supported) byId('message').textContent = 'Open the HTTPS page in Bluefy with Bluetooth permission enabled.';
 render();
+refreshWifi = installWifi(document, registry);
 installUpdates(document, window.location);
 if (supported) registry.restore();
 document.addEventListener('visibilitychange', () => {

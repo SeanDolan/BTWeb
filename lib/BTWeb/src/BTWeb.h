@@ -15,12 +15,15 @@ public:
     static constexpr const char* commandUuid = "fb8c0002-7b3a-4d0c-a8d5-83f46571c901";
     static constexpr const char* stateUuid = "fb8c0003-7b3a-4d0c-a8d5-83f46571c901";
     using ColorHandler = bool (*)(btweb::Color color, void* context);
+    using ServiceSetup = bool (*)(NimBLEService* service, void* context);
     BTWeb() = default;
     BTWeb(const BTWeb&) = delete;
     BTWeb& operator=(const BTWeb&) = delete;
-    bool begin(const char* name, ColorHandler handler, void* context = nullptr);
+    bool begin(const char* name, ColorHandler handler, void* context = nullptr,
+               ServiceSetup extension = nullptr, void* extensionContext = nullptr);
     void poll();
     bool connected() const { return connected_.load(); }
+    uint32_t session() const { return session_.load(); }
     // Report colours changed by local application logic, from the loop task only.
     void setColor(btweb::Color color);
     btweb::Color color() const { return color_; }

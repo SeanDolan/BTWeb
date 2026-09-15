@@ -84,3 +84,13 @@ Copy `include/RgbLed.h` and the example integration if the new project also uses
 One BLE client, unauthenticated local LED control, no persistent colour storage, no OTA, and no ESP-NOW network implemented in this example. Anyone nearby with a compatible BLE client can control the LED. Before adapting it to an actuator or shipping a product, define authenticated ownership/pairing, disconnect behaviour, radio-load requirements and recovery behaviour. The provided version is not a certified or hardware-qualified commercial product.
 
 No open-source licence has been selected on the owner's behalf. Dependencies retain their respective licences. Before distributing BTWeb as a reusable public library, add your chosen licence and update `library.json` metadata. See [contribution notes](CONTRIBUTING.md).
+
+## Wi-Fi scan test
+
+Select a connected board under **Wi-Fi scan**, then tap **Scan Wifi**. The ESP32 asynchronously scans its supported 2.4 GHz channels, including hidden networks, and returns results through BLE. The table shows **SSID | Security | Signal**, with RSSI in dBm (less negative is stronger). Separate access points with identical SSIDs remain separate rows; hidden names appear as `(Hidden network)`.
+
+**Clear** clears the table and suppresses further results from that request. A scan already running on the radio finishes asynchronously. No Wi-Fi network is joined and no credentials are needed. LED controls remain available while scanning; GATT operations are queued per board to avoid overlapping Bluetooth requests.
+
+Upload the updated firmware before using this feature. Older firmware can still control the LED but reports that scanning is unavailable. The optional helper `include/WifiScan.h` attaches characteristics through BTWeb's service setup hook and handles at most one queued request per loop. It owns Arduino's scan results; other application code must coordinate scans with it. Results are released on replacement or after the client session ends and an active scan finishes.
+
+Wi-Fi/BLE software coexistence is enabled in the pinned SDK. Both use the same radio, so scanning can increase Bluetooth latency. Scans visit different channels and can interrupt future ESP-NOW traffic; test under real network load before integrating this feature there. GPIO8 remains the only application GPIO used.

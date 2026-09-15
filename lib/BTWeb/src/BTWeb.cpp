@@ -1,6 +1,7 @@
 #include "BTWeb.h"
 
-bool BTWeb::begin(const char* name, ColorHandler handler, void* context) {
+bool BTWeb::begin(const char* name, ColorHandler handler, void* context,
+                  ServiceSetup extension, void* extensionContext) {
     if (server_ || !name || !name[0] || strlen(name) > 20) return false;
     handler_ = handler;
     context_ = context;
@@ -16,6 +17,7 @@ bool BTWeb::begin(const char* name, ColorHandler handler, void* context) {
     state_ = service->createCharacteristic(stateUuid,
         NIMBLE_PROPERTY::READ | NIMBLE_PROPERTY::NOTIFY, btweb::stateSize);
     if (!command || !state_) return false;
+    if (extension && !extension(service, extensionContext)) return false;
     command->setCallbacks(this);
     publish(false);
     service->start();

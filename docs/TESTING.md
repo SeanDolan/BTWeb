@@ -55,3 +55,9 @@ The existing PlatformIO core/toolchain was read and copied into the project-loca
 Advertisement reconnection tests verify that GATT connection follows a matching advertisement, unrelated IDs are ignored, and denial, cancellation and timeout stop watching. This follows the Google Web Bluetooth Watch Advertisements and Connect sample; actual Bluefy restart behaviour remains a physical acceptance check.
 
 Reload tests verify network-only release lookup, full asset download, rejection of invalid paths, and staying on the working page if offline. The deployed commit is embedded in each immutable release during the Pages build.
+
+## Wi-Fi scan validation
+
+- Firmware builds successfully: 43,988 bytes static RAM; 898,974 bytes application flash.
+- 40 browser tests pass, including SSID/security/RSSI decoding, selected-board routing, Clear during result delivery, old firmware, and inclusion of scan scripts in offline assets.
+- Physical acceptance: scan while changing red/blue/green/off; verify BLE stays connected, hidden/duplicate SSIDs remain separate, Clear prevents late rows, and disconnect/reconnect does not expose a previous session's pending results.

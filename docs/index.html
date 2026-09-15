@@ -26,6 +26,20 @@
       </table>
       <p id="empty">Add your first board to get started.</p>
     </section>
+    <section aria-label="Wi-Fi scan">
+      <h2>Wi-Fi scan</h2>
+      <label for="wifi-device">Scan from board</label>
+      <select id="wifi-device"></select>
+      <div class="wifi-actions">
+        <button id="wifi-scan" disabled>Scan Wifi</button>
+        <button id="wifi-clear">Clear</button>
+      </div>
+      <p id="wifi-status" role="status"></p>
+      <table class="wifi-table">
+        <thead><tr><th scope="col">SSID</th><th scope="col">Security</th><th scope="col">Signal</th></tr></thead>
+        <tbody id="wifi-results"></tbody>
+      </table>
+    </section>
     <footer>
       <p>Keep Bluefy in the foreground while controlling your boards.</p>
       <p id="commit"></p>

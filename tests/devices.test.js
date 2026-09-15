@@ -247,11 +247,13 @@ test('a timed-out connection completing after a retry does not disconnect the ne
 test('page renders five cells per board and a single swatch click controls only that row', async () => {
   class Element {
     constructor() { this.children = []; this.listeners = {}; this.attributes = {}; }
-    append(...children) { this.children.push(...children); }
+    append(...children) { this.children.push(...children); if (!this.value && children[0]?.value) this.value = children[0].value; }
+    replaceChildren() { this.children = []; this.value = ''; }
+    get options() { return this.children; }
     addEventListener(type, listener) { this.listeners[type] = listener; }
     setAttribute(key, value) { this.attributes[key] = value; }
   }
-  const elements = Object.fromEntries(['devices', 'empty', 'connect', 'message', 'commit', 'reload-cache', 'reload-status'].map(id => [id, new Element()]));
+  const elements = Object.fromEntries(['devices', 'empty', 'connect', 'message', 'commit', 'reload-cache', 'reload-status', 'wifi-device', 'wifi-scan', 'wifi-clear', 'wifi-results', 'wifi-status'].map(id => [id, new Element()]));
   const a = board('a'); const b = board('b');
   const previous = Object.fromEntries(['document', 'window', 'navigator'].map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
   Object.defineProperty(globalThis, 'document', { configurable: true, value: {

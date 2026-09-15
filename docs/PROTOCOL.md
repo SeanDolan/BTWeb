@@ -36,3 +36,12 @@ Example: `[1, 7, 1, 0, 0, 255]` requests blue with sequence 7. Invalid length, v
 Handler availability is a capability flag, not a hardware health measurement. The drop counter wraps modulo 65536 on the wire. Overflow is asynchronous and its result uses the latest processed sequence, not necessarily the sequence of the dropped packet. A client must not interpret overflow as a successful acknowledgement.
 
 Writes acknowledge receipt at the ATT layer; the state sequence/result acknowledges application processing. Only send the next command after the matching state. Notifications are coalesced, so a client that floods writes has no per-command response guarantee. Read state or reconnect after uncertainty. There is no automatic command replay or persistence across power loss.
+
+## Optional Wi-Fi scan extension
+
+The example adds two characteristics to the existing BTWeb service, without changing the LED protocol or service UUID:
+
+- `fb8c0004-7b3a-4d0c-a8d5-83f46571c901`: WRITE, five bytes `[1, sequence, operation, indexLo, indexHi]`. Operations: 1 start scan (or report an existing scan), 2 poll status, 3 retrieve an AP by its 16-bit index.
+- `fb8c0005-7b3a-4d0c-a8d5-83f46571c901`: READ, 8–40 bytes `[1, sequence, kind, countLo, countHi, authMode, signedRssi, ssidLength, ...ssidBytes]`. Kinds: 1 running, 2 completed, 3 AP row, 4 failure. Non-row replies have zero SSID length. Counts are little endian. SSIDs contain up to 32 raw bytes, decoded as UTF-8 with replacement for invalid sequences by the page.
+
+The browser waits for a matching sequence after each write because the firmware processes commands in loop(), then polls scan completion every 400 ms. Standard GATT long reads handle results longer than the default 20-byte ATT payload; no larger MTU is required. The four-entry queue is non-blocking; a dropped request causes an application timeout. Requests and scan results are isolated by the BLE session counter. Security values follow the pinned ESP-IDF auth enum (0 Open, 1 WEP, 2 WPA, 3 WPA2, 4 WPA/WPA2, 5 Enterprise, 6 WPA3, 7 WPA2/WPA3, 8 WAPI, 9 WPA3 Enterprise 192-bit); unknown values are shown numerically.

@@ -10,7 +10,7 @@ const prefix = `releases/${commit}/`;
 const release = new URL(prefix, output);
 await mkdir(release, { recursive: true });
 const files = ['controller.html', 'style.css', 'manifest.webmanifest', 'controller/app.js',
-  'controller/ble.js', 'controller/devices.js', 'controller/build.js', 'controller/updates.js'];
+  'controller/ble.js', 'controller/devices.js', 'controller/build.js', 'controller/updates.js', 'controller/wifi.js'];
 for (const path of files) {
   const target = new URL(path, release);
   await mkdir(new URL('./', target), { recursive: true });
