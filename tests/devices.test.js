@@ -100,14 +100,34 @@ test('denied or corrupt storage does not prevent live connections', async () => 
   assert.equal(registry.rows.get('a').client.ready, true);
 });
 
-test('repeated restore does not duplicate active connections and refreshes board names', async () => {
+test('repeated restore does not duplicate active connections or replace connected names', async () => {
   const a = board('a');
   const registry = new DeviceRegistry({ getDevices: async () => [a] }, storage());
   await Promise.all([registry.restore(), registry.restore()]);
   a.name = 'MNQ-BT-0002';
   await registry.restore();
   assert.equal(a.connections, 1);
-  assert.equal(registry.rows.get('a').name, 'MNQ-BT-0002');
+  assert.equal(registry.rows.get('a').name, 'MNQ-BT-0001');
+});
+
+test('a stale restored name cannot overwrite the saved name; connection saves the fresh name', async () => {
+  const a = board('a', 'BTWeb-C3');
+  const saved = storage([{ id: 'a', name: 'MNQ-BT-0001', autoConnect: false }]);
+  const registry = new DeviceRegistry({ getDevices: async () => [a] }, saved);
+  await registry.restore();
+  assert.equal(registry.rows.get('a').name, 'MNQ-BT-0001');
+  assert.match(registry.rows.get('a').message, /paused/);
+  const connect = a.gatt.connect.bind(a.gatt);
+  a.gatt.connect = async () => { a.name = 'MNQ-BT-0002'; return connect(); };
+  await registry.connect(registry.rows.get('a'));
+  assert.equal(JSON.parse(saved.getItem(STORAGE_KEY))[0].name, 'MNQ-BT-0002');
+});
+
+test('restoration failures are visible instead of silently looking disconnected', async () => {
+  const registry = new DeviceRegistry({ getDevices: async () => { throw new Error('Permission denied'); } },
+    storage([{ id: 'a', name: 'Saved board' }]));
+  await registry.restore();
+  assert.match(registry.rows.get('a').message, /Permission denied/);
 });
 
 test('a timed-out connection completing after a retry does not disconnect the new client', async () => {

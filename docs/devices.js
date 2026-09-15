@@ -35,17 +35,32 @@ export class DeviceRegistry {
       this.rows.set(row.id, row);
     }
     if (authorised) row.device = device;
-    if (device.name) row.name = device.name;
     return row;
   }
 
   async restore() {
     // Never open a permission picker automatically.
+    let restoreMessage = 'Tap Connect to select this board again.';
     if (typeof this.bluetooth?.getDevices === 'function') {
+      let timer;
       try {
-        for (const device of await this.bluetooth.getDevices()) this.add(device);
+        const devices = await Promise.race([
+          this.bluetooth.getDevices(),
+          new Promise((_, reject) => {
+            timer = setTimeout(() => reject(new Error('Saved-device lookup timed out.')), 5000);
+          }),
+        ]);
+        for (const device of devices) this.add(device);
         this.save();
-      } catch { /* Keep saved rows available for manual connection. */ }
+      } catch (error) {
+        restoreMessage = `Could not restore connection: ${error.message || String(error)}`;
+      } finally { clearTimeout(timer); }
+    }
+    for (const row of this.rows.values()) {
+      if (!row.busy && !row.client?.ready) {
+        if (!row.autoConnect) row.message = 'Auto-connect paused. Tap Connect to resume.';
+        else if (!row.device) row.message = restoreMessage;
+      }
     }
     this.changed();
     await Promise.allSettled([...this.rows.values()]
@@ -91,6 +106,10 @@ export class DeviceRegistry {
           timer = setTimeout(() => reject(new Error('Board unavailable. Tap Connect to retry.')), this.connectionTimeout);
         }),
       ]);
+      // Restored browser records can have an old name. Persist the name seen
+      // on a successful connection instead of replacing it during restore.
+      if (row.device.name) row.name = row.device.name;
+      this.save();
       row.message = row.state?.outputAvailable ? 'Connected' : 'Connected · LED unavailable';
     } catch (error) {
       client.disconnect();
@@ -106,7 +125,7 @@ export class DeviceRegistry {
   disconnect(row) {
     row.autoConnect = false;
     row.client?.disconnect();
-    row.message = 'Disconnected';
+    row.message = 'Auto-connect paused. Tap Connect to resume.';
     this.save();
     this.changed();
   }
