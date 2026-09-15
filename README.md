@@ -87,6 +87,8 @@ No open-source licence has been selected on the owner's behalf. Dependencies ret
 
 ## Wi-Fi scan test
 
+Bookmark the permanent controller address, `https://seandolan.github.io/BTWeb/controller.html`. Reload Cached Version returns to this address. Historical release-page URLs redirect here after newer deployments; commit-specific asset paths still identify the loaded code.
+
 Select a connected board under **Wi-Fi scan**, then tap **Scan Wifi**. The ESP32 asynchronously scans its supported 2.4 GHz channels, including hidden networks, and returns results through BLE. The table shows **SSID | Security | Signal**, with RSSI in dBm (less negative is stronger). Separate access points with identical SSIDs remain separate rows; hidden names appear as `(Hidden network)`.
 
 **Clear** clears the table and suppresses further results from that request. A scan already running on the radio finishes asynchronously. No Wi-Fi network is joined and no credentials are needed. LED controls remain available while scanning; GATT operations are queued per board to avoid overlapping Bluetooth requests.

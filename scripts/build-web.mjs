@@ -22,6 +22,17 @@ const html = await readFile(new URL('docs/controller.html', root), 'utf8');
 const entry = html.replaceAll('href="./', `href="./${prefix}`).replaceAll('src="./', `src="./${prefix}`);
 await writeFile(new URL('index.html', output), entry);
 await writeFile(new URL('controller.html', output), entry);
+// Pages replaces the deployment artifact. Preserve old controller URLs as
+// redirects, even though only the current release's assets are published.
+const history = execFileSync('git', ['-c', `safe.directory=${fileURLToPath(root).replaceAll('\\', '/')}`,
+  'log', '--format=%H'], { cwd: root, encoding: 'utf8' }).trim().split(/\s+/);
+for (const previous of history) {
+  if (previous === commit || !/^[a-f0-9]{40}$/.test(previous)) continue;
+  const directory = new URL(`releases/${previous}/`, output);
+  await mkdir(directory, { recursive: true });
+  await writeFile(new URL('controller.html', directory),
+    '<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=../../controller.html"><title>BTWeb</title><a href="../../controller.html">Open BTWeb</a>');
+}
 await writeFile(new URL('.nojekyll', output), '');
 const assets = files.map(path => prefix + path);
 await writeFile(new URL('version.json', output), JSON.stringify({ commit, entry: prefix + 'controller.html', assets }));

@@ -15,7 +15,7 @@ test('reload bypasses manifest cache and downloads the complete immutable releas
   assert.equal(calls[0].options.cache, 'no-store');
   assert.ok(calls[0].url.searchParams.has('reload'));
   assert.equal(calls.length, 3);
-  assert.equal(url.pathname, '/BTWeb/' + entry);
+  assert.equal(url.pathname, '/BTWeb/controller.html');
   for (const call of calls.slice(1)) assert.equal(call.options.cache, 'reload');
 });
 

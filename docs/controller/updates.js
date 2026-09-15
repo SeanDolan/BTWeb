@@ -23,13 +23,19 @@ export async function latestRelease(fetcher = fetch, root = SITE_ROOT) {
       if (!result.ok) throw new Error('The latest version is not fully available yet. Try again shortly.');
       await result.arrayBuffer();
     }));
-    const entry = new URL(release.entry, root);
+    // Navigate to a permanent page; immutable paths are for assets, not bookmarks.
+    const entry = new URL('controller.html', root);
     entry.searchParams.set('reload', String(Date.now()));
     return entry;
   } finally { clearTimeout(timer); }
 }
 
 export function installUpdates(document, location, fetcher = fetch) {
+  // Existing version-specific bookmarks become a permanent address without
+  // reloading or disturbing an active Bluetooth connection.
+  if (location?.pathname?.includes('/releases/')) {
+    globalThis.history?.replaceState(null, '', new URL('controller.html', SITE_ROOT));
+  }
   document.getElementById('commit').textContent = COMMIT;
   const button = document.getElementById('reload-cache');
   const status = document.getElementById('reload-status');
