@@ -34,7 +34,8 @@ Record iPhone model, iOS version, Bluefy version, board markings, flash capacity
 
 - Restoration tests now use explicitly saved device IDs. Unknown permission records and same-name/different-ID devices are ignored. Failed references are discarded; manual Connect refreshes the saved ID without a picker. Tests cover changed-ID replacement, cancelled/failed selection, and string/object errors with connection-stage reporting.
 
-- Protocol, device registry, page interaction and cache tests: 30 passed using simulated Bluetooth devices and a minimal DOM.
+- Protocol, device registry, page interaction and cache tests: 31 passed using simulated Bluetooth devices and a minimal DOM.
+- The fresh controller.html entry and controller/ module paths avoid old cached script URLs. Its footer identifies Controller 9; both HTML entry points are checked for consistency.
 - Stale-entry removal persists across reload without removing other boards; explicitly selecting a removed device restores it. Returning from the picker preserves the freshly selected device reference.
 - Added regression checks for stale restored names, saving the name after connection, and visible device-restoration errors.
 - Verified independent colour/off routing, duplicate names, permission restoration without a picker, manual disconnect persistence, unavailable storage, isolated timeouts, and late connection completion after a retry.

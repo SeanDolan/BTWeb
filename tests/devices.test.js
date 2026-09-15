@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { DeviceRegistry, STORAGE_KEY, REMOVED_KEY } from '../docs/devices.js';
-import { UUID } from '../docs/ble.js';
+import { DeviceRegistry, STORAGE_KEY, REMOVED_KEY } from '../docs/controller/devices.js';
+import { UUID } from '../docs/controller/ble.js';
 
 function board(id, name = 'MNQ-BT-0001') {
   const device = new EventTarget();
@@ -260,7 +260,7 @@ test('page renders five cells per board and a single swatch click controls only 
   Object.defineProperty(globalThis, 'window', { configurable: true, value: { isSecureContext: true, localStorage: storage() } });
   Object.defineProperty(globalThis, 'navigator', { configurable: true, value: { bluetooth: { getDevices: async () => [a, b] } } });
   try {
-    await import('../docs/app.js');
+    await import('../docs/controller/app.js');
     await new Promise(resolve => setImmediate(resolve));
     assert.equal(elements.devices.children.length, 2);
     const row = elements.devices.children[1];

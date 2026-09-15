@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { BTWebClient, decodeState } from '../docs/ble.js';
+import { BTWebClient, decodeState } from '../docs/controller/ble.js';
 
 test('advertisement rediscovery waits for the saved ID and stops watching afterwards', async () => {
   const client = new BTWebClient(null);

@@ -29,7 +29,7 @@ Replace `COM7` with the actual device port. Nothing automatically flashes a conn
 
 1. The project repository is [SeanDolan/BTWeb](https://github.com/SeanDolan/BTWeb). Push changes to `main`; ignored build/tool folders must stay excluded.
 2. In repository **Settings → Pages**, choose **Deploy from a branch**, your main branch, and `/docs`.
-3. Open `https://seandolan.github.io/BTWeb/` in **Bluefy** on your iPhone.
+3. Open `https://seandolan.github.io/BTWeb/controller.html` in **Bluefy** on your iPhone. The footer says **Controller 9**. This address and its new script paths bypass earlier controller assets retained by the browser; saved devices remain on the same origin.
 4. Enable Bluetooth and grant Bluefy Bluetooth permission. Tap **Add board** and choose `MNQ-BT-0001` in the browser's device picker. Repeat to add more boards. No prior pairing in iPhone Settings is required.
 5. Each device has a table row: **Device | Red | Blue | Green | blank**. Tap a colour once to set that board's LED, or the blank button to turn it off. The selection reflects the state acknowledged by that board.
 
