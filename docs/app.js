@@ -33,7 +33,7 @@ byId('connect').addEventListener('click', () => run(async () => {
   byId('connection').textContent = 'Connecting…';
   try {
     await client.connect();
-    byId('connection').textContent = 'Connected to BTWeb';
+    byId('connection').textContent = `Connected to ${client.device.name || 'MNQ-BT-0001'}`;
     if (!outputAvailable) byId('message').textContent = 'Firmware has no LED output configured.';
   } catch (error) {
     byId('connection').textContent = 'Disconnected';

@@ -30,7 +30,7 @@ Replace `COM7` with the actual device port. Nothing automatically flashes a conn
 1. The project repository is [SeanDolan/BTWeb](https://github.com/SeanDolan/BTWeb). Push changes to `main`; ignored build/tool folders must stay excluded.
 2. In repository **Settings → Pages**, choose **Deploy from a branch**, your main branch, and `/docs`.
 3. Open `https://seandolan.github.io/BTWeb/` in **Bluefy** on your iPhone.
-4. Enable Bluetooth and grant Bluefy Bluetooth permission. Tap **Connect board** and choose `BTWeb-C3` in the browser's device picker. No prior pairing in iPhone Settings is required.
+4. Enable Bluetooth and grant Bluefy Bluetooth permission. Tap **Connect board** and choose `MNQ-BT-0001` in the browser's device picker. No prior pairing in iPhone Settings is required.
 5. Tap Red, Green, Blue or Off. Success is shown only after the ESP32 acknowledges the command.
 
 All web assets are local to the repository; there are no CDNs, analytics or runtime package downloads. Relative URLs support arbitrary repository names. `docs/.nojekyll` allows direct static hosting. CI builds and tests the project; publishing is controlled by your Pages settings.

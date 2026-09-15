@@ -1,6 +1,6 @@
 # BTWeb BLE protocol v1
 
-All UUIDs are project-specific 128-bit UUIDs. Advertising includes the service UUID; the local name `BTWeb-C3` is provided with scan-response support. Configure one connection through the global PlatformIO build flag `CONFIG_BT_NIMBLE_MAX_CONNECTIONS=1` when reusing this library.
+All UUIDs are project-specific 128-bit UUIDs. Advertising includes the service UUID; the local name `MNQ-BT-0001` is provided with scan-response support. Configure one connection through the global PlatformIO build flag `CONFIG_BT_NIMBLE_MAX_CONNECTIONS=1` when reusing this library.
 
 | Role | UUID | Properties |
 | --- | --- | --- |
