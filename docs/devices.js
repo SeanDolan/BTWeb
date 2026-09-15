@@ -3,6 +3,16 @@ import { BTWebClient, UUID } from './ble.js';
 export const STORAGE_KEY = 'btweb.devices.v1';
 export const REMOVED_KEY = 'btweb.removedDevices.v1';
 
+export function errorText(error) {
+  if (typeof error === 'string' && error) return error;
+  if (error?.message) return String(error.message);
+  try {
+    const details = JSON.stringify(error);
+    if (details && details !== '{}') return details;
+  } catch { /* Non-serialisable browser error. */ }
+  return error?.name || 'Browser returned no error details';
+}
+
 // Browser-scoped IDs identify boards; names are display labels only.
 export class DeviceRegistry {
   constructor(bluetooth, storage, changed = () => {}, connectionTimeout = 12000) {
@@ -11,6 +21,7 @@ export class DeviceRegistry {
     this.changed = changed;
     this.connectionTimeout = connectionTimeout;
     this.rows = new Map();
+    this.selecting = false;
     this.removed = new Set();
     try {
       const removed = JSON.parse(storage?.getItem(REMOVED_KEY) || '[]');
@@ -19,7 +30,7 @@ export class DeviceRegistry {
     try {
       const saved = JSON.parse(storage?.getItem(STORAGE_KEY) || '[]');
       if (Array.isArray(saved)) for (const entry of saved) {
-        if (entry && typeof entry.id === 'string' && typeof entry.name === 'string') {
+        if (entry && typeof entry.id === 'string' && entry.id.length && typeof entry.name === 'string' && !this.removed.has(entry.id)) {
           this.add({ id: entry.id, name: entry.name }, entry.autoConnect !== false, false);
         }
       }
@@ -34,6 +45,7 @@ export class DeviceRegistry {
   }
 
   add(device, autoConnect = true, authorised = true) {
+    if (typeof device?.id !== 'string' || !device.id.length) throw new Error('Browser returned a device without a valid ID.');
     let row = this.rows.get(device.id);
     if (!row) {
       row = { id: device.id, name: device.name || 'Unnamed board', autoConnect,
@@ -45,6 +57,7 @@ export class DeviceRegistry {
   }
 
   async restore() {
+    if (this.selecting) return;
     // Never open a permission picker automatically.
     let restoreMessage = 'Tap Connect to select this board again.';
     if (typeof this.bluetooth?.getDevices === 'function') {
@@ -57,17 +70,18 @@ export class DeviceRegistry {
           }),
         ]);
         for (const device of devices) {
-          if (this.removed.has(device.id)) continue;
-          // Do not replace a freshly selected handle on returning from the picker.
-          if (!this.rows.get(device.id)?.device) this.add(device);
+          const row = this.rows.get(device.id);
+          // Permission history is not our saved board list. Exact ID match only.
+          if (!row || row.failed || this.selecting) continue;
+          if (!row.device && !row.busy && !row.client?.ready) row.device = device;
         }
         this.save();
       } catch (error) {
-        restoreMessage = `Could not restore connection: ${error.message || String(error)}`;
+        restoreMessage = `Could not restore connection: ${errorText(error)}`;
       } finally { clearTimeout(timer); }
     }
     for (const row of this.rows.values()) {
-      if (!row.busy && !row.client?.ready) {
+      if (!row.busy && !row.client?.ready && !row.failed) {
         if (!row.autoConnect) row.message = 'Auto-connect paused. Tap Connect to resume.';
         else if (!row.device) row.message = restoreMessage;
       }
@@ -78,26 +92,36 @@ export class DeviceRegistry {
       .map(row => this.connect(row)));
   }
 
-  async choose() {
-    const device = await this.bluetooth.requestDevice({ filters: [{ services: [UUID.service] }] });
-    this.removed.delete(device.id);
-    this.saveRemoved();
-    const row = this.add(device);
-    if (device.name) row.name = device.name;
-    row.autoConnect = true;
-    this.save();
-    this.changed();
-    await this.connect(row);
-    return row;
+  async choose(previousRow) {
+    if (this.selecting) return;
+    this.selecting = true;
+    try {
+      const device = await this.bluetooth.requestDevice({ filters: [{ services: [UUID.service] }] });
+      if (this.rows.get(device.id)?.busy) throw new Error('This board is already connecting. Wait for it to finish.');
+      this.removed.delete(device.id);
+      this.saveRemoved();
+      const row = this.add(device);
+      if (device.name) row.name = device.name;
+      row.autoConnect = true;
+      row.failed = false;
+      this.save();
+      this.changed();
+      await this.connect(row);
+      // A new browser ID replaces only the row the user explicitly reselected,
+      // and only after the selected device has passed service/protocol setup.
+      if (previousRow && previousRow !== row && row.client?.ready) this.remove(previousRow);
+      return row;
+    } finally { this.selecting = false; }
   }
 
   async connect(row) {
     if (row.busy || row.client?.ready) return;
-    if (!row.device) return this.choose();
+    if (!row.device || row.failed) return this.choose(row);
     row.autoConnect = true;
     this.save();
     row.busy = true;
     row.state = null;
+    const device = row.device;
     row.message = 'Connecting…';
     const client = new BTWebClient(this.bluetooth, state => {
       if (row.client !== client) return;
@@ -114,20 +138,22 @@ export class DeviceRegistry {
     let timer;
     try {
       await Promise.race([
-        client.connect(row.device),
+        client.connect(device),
         new Promise((_, reject) => {
           timer = setTimeout(() => reject(new Error('Board unavailable. Tap Connect to retry.')), this.connectionTimeout);
         }),
       ]);
       // Restored browser records can have an old name. Persist the name seen
       // on a successful connection instead of replacing it during restore.
-      if (row.device.name) row.name = row.device.name;
+      if (device.name) row.name = device.name;
       this.save();
       row.message = row.state?.outputAvailable ? 'Connected' : 'Connected · LED unavailable';
     } catch (error) {
       client.disconnect();
       row.client = null;
-      row.message = error.message || 'Could not connect';
+      row.device = null;
+      row.failed = true;
+      row.message = `${client.stage || 'Connection'}: ${errorText(error)}. Tap Connect to select the board again.`;
     } finally {
       clearTimeout(timer);
       row.busy = false;

@@ -31,7 +31,7 @@ function board(id, name = 'MNQ-BT-0001') {
   return device;
 }
 
-function storage(entries = []) {
+function storage(entries = [{ id: 'a', name: 'MNQ-BT-0001' }, { id: 'b', name: 'MNQ-BT-0001' }]) {
   const data = new Map([[STORAGE_KEY, JSON.stringify(entries)]]);
   return {
     getItem(key) { return data.get(key) || null; },
@@ -39,7 +39,7 @@ function storage(entries = []) {
   };
 }
 
-test('restores multiple authorised boards without a picker; same names remain separate', async () => {
+test('restores multiple saved boards without a picker; same names remain separate', async () => {
   const a = board('a'); const b = board('b');
   const saved = storage();
   const registry = new DeviceRegistry({ getDevices: async () => [a, b], requestDevice() { assert.fail('Picker opened'); } }, saved);
@@ -56,9 +56,60 @@ test('restores multiple authorised boards without a picker; same names remain se
   assert.deepEqual(rowB.state.rgb, [0, 0, 255]);
 });
 
+test('permission history never imports unknown IDs or matches a board by name', async () => {
+  const wrong = board('wrong', 'MNQ-BT-0001');
+  const registry = new DeviceRegistry({ getDevices: async () => [wrong] },
+    storage([{ id: 'correct', name: 'MNQ-BT-0001' }]));
+  await registry.restore();
+  assert.deepEqual([...registry.rows.keys()], ['correct']);
+  assert.equal(wrong.connections, 0);
+  assert.equal(registry.rows.get('correct').device, null);
+});
+
+test('failed restored reference is discarded and Connect selects fresh without removing the row', async () => {
+  const stale = board('a', 'BTWeb-C3'); const fresh = board('a');
+  let failures = 0; let selections = 0;
+  stale.gatt.connect = async () => { failures++; throw 'Native connection rejected'; };
+  const registry = new DeviceRegistry({ getDevices: async () => [stale], requestDevice: async () => { selections++; return fresh; } }, storage());
+  await registry.restore();
+  const row = registry.rows.get('a');
+  assert.equal(row.device, null);
+  assert.match(row.message, /Bluetooth connection: Native connection rejected/);
+  await registry.restore();
+  assert.equal(failures, 1);
+  await registry.connect(row);
+  assert.equal(selections, 1);
+  assert.equal(row.device, fresh);
+  assert.equal(row.client.ready, true);
+});
+
+test('reselection replaces only the targeted stale ID after protocol validation', async () => {
+  const selected = board('new-id'); const saved = storage();
+  const registry = new DeviceRegistry({ requestDevice: async () => selected }, saved);
+  const old = registry.rows.get('a');
+  await registry.connect(old);
+  assert.equal(registry.rows.has('a'), false);
+  assert.equal(registry.rows.has('b'), true);
+  assert.equal(registry.rows.get('new-id').client.ready, true);
+  assert.deepEqual(JSON.parse(saved.getItem(STORAGE_KEY)).map(row => row.id), ['b', 'new-id']);
+});
+
+test('cancelled or unsuccessful reselection preserves the original saved board', async () => {
+  const registry = new DeviceRegistry({ requestDevice: async () => { throw new Error('Cancelled'); } }, storage());
+  const old = registry.rows.get('a');
+  await assert.rejects(registry.connect(old), /Cancelled/);
+  assert.equal(registry.rows.get('a'), old);
+  const bad = board('bad');
+  bad.gatt.getPrimaryService = async () => { throw { code: 42, reason: 'No service' }; };
+  registry.bluetooth.requestDevice = async () => bad;
+  await registry.connect(old);
+  assert.equal(registry.rows.get('a'), old);
+  assert.match(registry.rows.get('bad').message, /BTWeb service discovery.*42/);
+});
+
 test('removed stale records stay removed across reload and can be explicitly added again', async () => {
   const old = board('old', 'BTWeb-C3'); const fresh = board('fresh');
-  const saved = storage();
+  const saved = storage([{ id: 'old', name: 'BTWeb-C3' }, { id: 'fresh', name: 'MNQ-BT-0001' }]);
   const bluetooth = { getDevices: async () => [old, fresh], requestDevice: async () => old };
   const first = new DeviceRegistry(bluetooth, saved);
   await first.restore();
@@ -124,10 +175,10 @@ test('unavailable getDevices preserves saved rows without opening a picker', asy
 
 test('denied or corrupt storage does not prevent live connections', async () => {
   const a = board('a');
-  const registry = new DeviceRegistry({ getDevices: async () => [a] }, {
+  const registry = new DeviceRegistry({ requestDevice: async () => a }, {
     getItem: () => '{broken', setItem() { throw new Error('Storage denied'); },
   });
-  await registry.restore();
+  await registry.choose();
   assert.equal(registry.rows.get('a').client.ready, true);
 });
 
@@ -166,7 +217,7 @@ test('a timed-out connection completing after a retry does not disconnect the ne
   const normalConnect = a.gatt.connect.bind(a.gatt);
   let finish;
   a.gatt.connect = () => new Promise(resolve => { finish = () => resolve(a.gatt); });
-  const registry = new DeviceRegistry({ getDevices: async () => [a] }, storage(), () => {}, 20);
+  const registry = new DeviceRegistry({ getDevices: async () => [a], requestDevice: async () => a }, storage(), () => {}, 20);
   await registry.restore();
   a.gatt.connect = normalConnect;
   await registry.connect(registry.rows.get('a'));

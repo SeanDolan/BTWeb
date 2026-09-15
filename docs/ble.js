@@ -44,10 +44,13 @@ export class BTWebClient {
     };
     this.device.addEventListener('gattserverdisconnected', this.lost);
     try {
+      this.stage = 'Bluetooth connection';
       const server = await this.device.gatt.connect();
       check();
+      this.stage = 'BTWeb service discovery';
       const service = await server.getPrimaryService(UUID.service);
       check();
+      this.stage = 'BTWeb characteristic discovery';
       const command = await service.getCharacteristic(UUID.command);
       check();
       const state = await service.getCharacteristic(UUID.state);
@@ -55,14 +58,17 @@ export class BTWebClient {
       this.command = command;
       this.state = state;
       this.state.addEventListener('characteristicvaluechanged', this.receive);
+      this.stage = 'State notification subscription';
       await this.state.startNotifications();
       check();
+      this.stage = 'Initial state read';
       const initial = await this.state.readValue();
       check();
       if (this.device !== device || !device.gatt.connected) throw new Error('Bluetooth disconnected during setup.');
       this.sequence = decodeState(initial).sequence;
       this.accept(initial);
       this.ready = true;
+      this.stage = 'Board acknowledgement';
       // Fence the initial cached state with a fresh application acknowledgement.
       await this.send(2, [0, 0, 0]);
     } catch (error) {

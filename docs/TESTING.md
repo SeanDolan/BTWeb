@@ -32,7 +32,9 @@ Record iPhone model, iOS version, Bluefy version, board markings, flash capacity
 
 ## Multi-device controller checks (2026-09-16)
 
-- Protocol, device registry, page interaction and cache tests: 22 passed using simulated Bluetooth devices and a minimal DOM.
+- Restoration tests now use explicitly saved device IDs. Unknown permission records and same-name/different-ID devices are ignored. Failed references are discarded; manual reselection recovers without deletion. Tests cover changed-ID replacement, cancelled/failed selection, and string/object errors with connection-stage reporting.
+
+- Protocol, device registry, page interaction and cache tests: 26 passed using simulated Bluetooth devices and a minimal DOM.
 - Stale-entry removal persists across reload without removing other boards; explicitly selecting a removed device restores it. Returning from the picker preserves the freshly selected device reference.
 - Added regression checks for stale restored names, saving the name after connection, and visible device-restoration errors.
 - Verified independent colour/off routing, duplicate names, permission restoration without a picker, manual disconnect persistence, unavailable storage, isolated timeouts, and late connection completion after a retry.

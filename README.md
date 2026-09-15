@@ -33,7 +33,7 @@ Replace `COM7` with the actual device port. Nothing automatically flashes a conn
 4. Enable Bluetooth and grant Bluefy Bluetooth permission. Tap **Add board** and choose `MNQ-BT-0001` in the browser's device picker. Repeat to add more boards. No prior pairing in iPhone Settings is required.
 5. Each device has a table row: **Device | Red | Blue | Green | blank**. Tap a colour once to set that board's LED, or the blank button to turn it off. The selection reflects the state acknowledged by that board.
 
-The page stores multiple device IDs and names locally. On opening the page or returning it to the foreground, it uses `navigator.bluetooth.getDevices()` to retrieve previously authorised devices and attempts their connections independently. The previous single-board permission can be discovered this way too. Names are labels; browser device IDs distinguish boards even when names match. Each board still accepts one phone connection, while the page can manage several boards.
+The page stores multiple device IDs and names locally. On opening the page or returning it to the foreground, it uses `navigator.bluetooth.getDevices()` to find exact ID matches for its saved boards and attempts their connections independently. Other browser permission records are ignored; only Add board or an explicit reselection adds a device. Names are labels; browser device IDs distinguish boards even when names match. Each board still accepts one phone connection, while the page can manage several boards.
 
 **Disconnect** stops automatic reconnection for that row, including after reopening; tap its **Connect** button to enable it again. An unavailable board times out after 12 seconds without blocking other rows. There is no continuous background scanning or retry loop. If Bluefy cannot return a previously authorised device, use **Connect** or **Add board** to select it again. Persistent storage and device permissions depend on the browser; live control still works if local storage is unavailable.
 
@@ -41,7 +41,7 @@ All web assets are local to the repository; there are no CDNs, analytics or runt
 
 ## Remote/offline acceptance test
 
-To replace a stale device entry, use **Remove** in its row, then **Add board** and select the current advertised device. Removal affects this controller's saved list; it does not revoke Bluefy's Bluetooth permissions. Removed IDs are ignored during automatic restoration until explicitly selected again. Other saved boards are retained.
+After a failed connection, its device reference is discarded. Tap **Connect** to select the current advertised device directly. If its browser ID changed, the selected device replaces only that row after successful BTWeb service and protocol validation. Cancelling or failing selection preserves the original row. **Remove** is also available for boards you no longer want saved. Removal affects this controller's saved list; it does not revoke Bluefy's Bluetooth permissions. Removed IDs are ignored during automatic restoration until explicitly selected again. Other saved boards are retained.
 
 1. Load the Pages URL fully in Bluefy while online. Bookmark that exact URL in Bluefy. Caching runs silently where supported; the page displays no offline-readiness claim.
 2. Turn off Wi-Fi and mobile data, or enable airplane mode and re-enable Bluetooth.
