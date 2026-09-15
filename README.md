@@ -28,8 +28,8 @@ Replace `COM7` with the actual device port. Nothing automatically flashes a conn
 ## Publish the controller to GitHub Pages
 
 1. The project repository is [SeanDolan/BTWeb](https://github.com/SeanDolan/BTWeb). Push changes to `main`; ignored build/tool folders must stay excluded.
-2. In repository **Settings → Pages**, choose **Deploy from a branch**, your main branch, and `/docs`.
-3. Open `https://seandolan.github.io/BTWeb/controller.html` in **Bluefy** on your iPhone. The footer says **Controller 9**. This address and its new script paths bypass earlier controller assets retained by the browser; saved devices remain on the same origin.
+2. In repository **Settings → Pages**, choose **GitHub Actions**. The Publish controller workflow tests and builds the page, stamps the source commit, and deploys it automatically from main.
+3. Open `https://seandolan.github.io/BTWeb/controller.html` in **Bluefy** on your iPhone. The footer shows the commit of the loaded controller. **Reload Cached Version** fetches the latest published release and downloads all its files before reopening it. It requires internet access and preserves the saved board list. Each release uses commit-specific file paths so old browser assets cannot silently substitute for a newer release.
 4. Enable Bluetooth and grant Bluefy Bluetooth permission. Tap **Add board** and choose `MNQ-BT-0001` in the browser's device picker. Repeat to add more boards. No prior pairing in iPhone Settings is required.
 5. Each device has a table row: **Device | Red | Blue | Green | blank**. Tap a colour once to set that board's LED, or the blank button to turn it off. The selection reflects the state acknowledged by that board.
 
@@ -37,7 +37,7 @@ The page stores multiple device IDs and names locally. On opening the page or re
 
 **Disconnect** stops automatic reconnection for that row, including after reopening; tap its **Connect** button to enable it again. An unavailable board times out after 12 seconds without blocking other rows. There is no continuous background scanning or retry loop. If Bluefy cannot return a previously authorised device, use **Connect** or **Add board** to select it again. Persistent storage and device permissions depend on the browser; live control still works if local storage is unavailable.
 
-All web assets are local to the repository; there are no CDNs, analytics or runtime package downloads. Relative URLs support arbitrary repository names. `docs/.nojekyll` allows direct static hosting. CI builds and tests the project; publishing is controlled by your Pages settings.
+All web assets are local to the repository; there are no CDNs, analytics or runtime package downloads. Relative URLs support arbitrary repository names. `docs/.nojekyll` allows direct static hosting. CI builds and tests the project. The Pages workflow runs scripts/build-web.mjs and publishes the generated .site directory; local source files identify themselves as a development build.
 
 ## Remote/offline acceptance test
 

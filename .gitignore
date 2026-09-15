@@ -3,6 +3,7 @@
 .tools/
 .cache/
 .tmp/
+.site/
 .vscode/
 __pycache__/
 *.pyc

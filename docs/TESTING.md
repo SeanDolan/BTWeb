@@ -34,8 +34,8 @@ Record iPhone model, iOS version, Bluefy version, board markings, flash capacity
 
 - Restoration tests now use explicitly saved device IDs. Unknown permission records and same-name/different-ID devices are ignored. Failed references are discarded; manual Connect refreshes the saved ID without a picker. Tests cover changed-ID replacement, cancelled/failed selection, and string/object errors with connection-stage reporting.
 
-- Protocol, device registry, page interaction and cache tests: 31 passed using simulated Bluetooth devices and a minimal DOM.
-- The fresh controller.html entry and controller/ module paths avoid old cached script URLs. Its footer identifies Controller 9; both HTML entry points are checked for consistency.
+- Protocol, device registry, page interaction and cache tests: 35 passed using simulated Bluetooth devices and a minimal DOM.
+- The fresh controller.html entry and controller/ module paths avoid old cached script URLs. Its footer shows the loaded commit; both HTML entry points are checked for consistency.
 - Stale-entry removal persists across reload without removing other boards; explicitly selecting a removed device restores it. Returning from the picker preserves the freshly selected device reference.
 - Added regression checks for stale restored names, saving the name after connection, and visible device-restoration errors.
 - Verified independent colour/off routing, duplicate names, permission restoration without a picker, manual disconnect persistence, unavailable storage, isolated timeouts, and late connection completion after a retry.
@@ -53,3 +53,5 @@ Record iPhone model, iOS version, Bluefy version, board markings, flash capacity
 The existing PlatformIO core/toolchain was read and copied into the project-local tool cache. The registry Python client failed to download NimBLE, so the exact upstream 2.3.6 tag archive was downloaded with curl and registered in the ignored local dependency cache. Compilation used that unmodified source release. A missing `intelhex==2.3.0` esptool dependency was installed into `.tools/python-deps`; the wrapper reads it through PYTHONPATH. Fresh installations use the pinned registry dependency in `platformio.ini` normally. Build output, downloads, tools and temporary files are ignored by Git.
 
 Advertisement reconnection tests verify that GATT connection follows a matching advertisement, unrelated IDs are ignored, and denial, cancellation and timeout stop watching. This follows the Google Web Bluetooth Watch Advertisements and Connect sample; actual Bluefy restart behaviour remains a physical acceptance check.
+
+Reload tests verify network-only release lookup, full asset download, rejection of invalid paths, and staying on the working page if offline. The deployed commit is embedded in each immutable release during the Pages build.

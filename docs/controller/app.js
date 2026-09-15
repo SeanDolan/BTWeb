@@ -1,4 +1,6 @@
 import { DeviceRegistry } from './devices.js';
+import { SITE_ROOT } from './build.js';
+import { installUpdates } from './updates.js';
 
 const byId = id => document.getElementById(id);
 const supported = window.isSecureContext && Boolean(navigator.bluetooth);
@@ -84,6 +86,7 @@ byId('connect').addEventListener('click', async () => {
 });
 if (!supported) byId('message').textContent = 'Open the HTTPS page in Bluefy with Bluetooth permission enabled.';
 render();
+installUpdates(document, window.location);
 if (supported) registry.restore();
 document.addEventListener('visibilitychange', () => {
   if (supported && document.visibilityState === 'visible') registry.restore();
@@ -91,5 +94,5 @@ document.addEventListener('visibilitychange', () => {
 
 // Cache silently where supported; Bluefy may also retain its own browser cache.
 if (window.isSecureContext && 'serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js').catch(() => {});
+  navigator.serviceWorker.register(new URL('sw.js', SITE_ROOT)).catch(() => {});
 }

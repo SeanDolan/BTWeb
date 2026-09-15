@@ -9,7 +9,7 @@ test('fresh controller entry uses new module paths and matches the normal entry'
   const fresh = await readFile(new URL('../docs/controller.html', import.meta.url), 'utf8');
   assert.equal(fresh, await readFile(new URL('../docs/index.html', import.meta.url), 'utf8'));
   assert.match(fresh, /src="\.\/controller\/app.js"/);
-  assert.match(fresh, /Controller 9/);
+  assert.match(fresh, /Reload Cached Version/);
 });
 function worker(online = true) {
   const handlers = {};
@@ -44,8 +44,8 @@ test('installs every controller asset and serves the page with network unavailab
   let installation;
   handlers.install({ waitUntil(promise) { installation = promise; } });
   await installation;
-  assert.equal(entries.size, 8);
-  for (const file of ['', 'index.html', 'controller.html', 'controller/app.js', 'controller/ble.js', 'controller/devices.js', 'style.css', 'manifest.webmanifest']) {
+  assert.equal(entries.size, 10);
+  for (const file of ['', 'index.html', 'controller.html', 'controller/app.js', 'controller/ble.js', 'controller/devices.js', 'controller/build.js', 'controller/updates.js', 'style.css', 'manifest.webmanifest']) {
     let response;
     handlers.fetch({ request: { method: 'GET', url: scope + file }, respondWith(promise) { response = promise; } });
     assert.equal((await response).cached, true);
@@ -69,5 +69,14 @@ test('does not intercept other repositories or cross-origin requests', () => {
   const { handlers } = worker();
   for (const url of ['https://example.github.io/another/', 'https://other.test/BTWeb/']) {
     handlers.fetch({ request: { method: 'GET', url }, respondWith() { assert.fail('Unexpected interception'); } });
+  }
+});
+
+test('explicit reload and version lookup never fall back to stale cache offline', async () => {
+  const { handlers, scope } = worker();
+  for (const file of ['version.json?reload=1', 'controller.html?reload=1']) {
+    let response;
+    handlers.fetch({ request: { method: 'GET', url: scope + file }, respondWith(value) { response = value; } });
+    await assert.rejects(response, /Network unavailable/);
   }
 });

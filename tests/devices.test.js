@@ -251,7 +251,7 @@ test('page renders five cells per board and a single swatch click controls only 
     addEventListener(type, listener) { this.listeners[type] = listener; }
     setAttribute(key, value) { this.attributes[key] = value; }
   }
-  const elements = Object.fromEntries(['devices', 'empty', 'connect', 'message'].map(id => [id, new Element()]));
+  const elements = Object.fromEntries(['devices', 'empty', 'connect', 'message', 'commit', 'reload-cache', 'reload-status'].map(id => [id, new Element()]));
   const a = board('a'); const b = board('b');
   const previous = Object.fromEntries(['document', 'window', 'navigator'].map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
   Object.defineProperty(globalThis, 'document', { configurable: true, value: {
