@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { DeviceRegistry, STORAGE_KEY } from '../docs/devices.js';
+import { DeviceRegistry, STORAGE_KEY, REMOVED_KEY } from '../docs/devices.js';
 import { UUID } from '../docs/ble.js';
 
 function board(id, name = 'MNQ-BT-0001') {
@@ -32,10 +32,10 @@ function board(id, name = 'MNQ-BT-0001') {
 }
 
 function storage(entries = []) {
-  let data = JSON.stringify(entries);
+  const data = new Map([[STORAGE_KEY, JSON.stringify(entries)]]);
   return {
-    getItem(key) { assert.equal(key, STORAGE_KEY); return data; },
-    setItem(key, value) { assert.equal(key, STORAGE_KEY); data = value; },
+    getItem(key) { return data.get(key) || null; },
+    setItem(key, value) { data.set(key, value); },
   };
 }
 
@@ -54,6 +54,37 @@ test('restores multiple authorised boards without a picker; same names remain se
   await registry.colour(rowA, [0, 0, 0]);
   assert.deepEqual(rowA.state.rgb, [0, 0, 0]);
   assert.deepEqual(rowB.state.rgb, [0, 0, 255]);
+});
+
+test('removed stale records stay removed across reload and can be explicitly added again', async () => {
+  const old = board('old', 'BTWeb-C3'); const fresh = board('fresh');
+  const saved = storage();
+  const bluetooth = { getDevices: async () => [old, fresh], requestDevice: async () => old };
+  const first = new DeviceRegistry(bluetooth, saved);
+  await first.restore();
+  first.remove(first.rows.get('old'));
+  assert.equal(first.rows.has('old'), false);
+  assert.equal(first.rows.get('fresh').client.ready, true);
+  assert.deepEqual(JSON.parse(saved.getItem(REMOVED_KEY)), ['old']);
+  const next = new DeviceRegistry(bluetooth, saved);
+  await next.restore();
+  assert.equal(next.rows.has('old'), false);
+  await next.choose();
+  assert.equal(next.rows.get('old').client.ready, true);
+});
+
+test('returning from Add board cannot replace its fresh handle with a stale restored handle', async () => {
+  const stale = board('same-id', 'BTWeb-C3'); const fresh = board('same-id');
+  const registry = new DeviceRegistry({ getDevices: async () => [stale], requestDevice: async () => fresh }, storage());
+  await registry.choose();
+  await registry.restore();
+  const row = registry.rows.get('same-id');
+  assert.equal(row.device, fresh);
+  assert.equal(row.name, 'MNQ-BT-0001');
+  registry.disconnect(row);
+  await registry.connect(row);
+  assert.equal(fresh.connections, 2);
+  assert.equal(stale.connections, 0);
 });
 
 test('manual disconnect persists across resume and page reload until explicit Connect', async () => {

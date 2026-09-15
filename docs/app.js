@@ -14,6 +14,9 @@ const views = new Map();
 const registry = new DeviceRegistry(navigator.bluetooth, storage, render);
 
 function render() {
+  for (const [id, view] of views) {
+    if (!registry.rows.has(id)) { view.tr.remove(); views.delete(id); }
+  }
   byId('empty').hidden = registry.rows.size > 0;
   for (const row of registry.rows.values()) {
     let view = views.get(row.id);
@@ -35,7 +38,11 @@ function render() {
           else await registry.connect(row);
         } catch (error) { byId('message').textContent = error.message; }
       });
-      cell.append(name, status, action);
+      const remove = document.createElement('button');
+      remove.className = 'connection-action';
+      remove.textContent = 'Remove';
+      remove.addEventListener('click', () => registry.remove(row));
+      cell.append(name, status, action, remove);
       tr.append(cell);
       const buttons = colours.map(colour => {
         const td = document.createElement('td');
@@ -47,13 +54,15 @@ function render() {
         return button;
       });
       byId('devices').append(tr);
-      view = { name, status, action, buttons };
+      view = { tr, name, status, action, remove, buttons };
       views.set(row.id, view);
     }
     view.name.textContent = row.name;
     view.status.textContent = row.message;
     view.action.textContent = row.client?.ready ? 'Disconnect' : 'Connect';
     view.action.disabled = !supported || row.busy;
+    view.remove.disabled = row.busy;
+    view.remove.setAttribute('aria-label', 'Remove ' + row.name);
     view.action.setAttribute('aria-label', view.action.textContent + ' ' + row.name);
     view.buttons.forEach((button, index) => {
       const colour = colours[index];

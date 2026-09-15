@@ -41,6 +41,8 @@ All web assets are local to the repository; there are no CDNs, analytics or runt
 
 ## Remote/offline acceptance test
 
+To replace a stale device entry, use **Remove** in its row, then **Add board** and select the current advertised device. Removal affects this controller's saved list; it does not revoke Bluefy's Bluetooth permissions. Removed IDs are ignored during automatic restoration until explicitly selected again. Other saved boards are retained.
+
 1. Load the Pages URL fully in Bluefy while online. Bookmark that exact URL in Bluefy. Caching runs silently where supported; the page displays no offline-readiness claim.
 2. Turn off Wi-Fi and mobile data, or enable airplane mode and re-enable Bluetooth.
 3. Close and reopen Bluefy, open the bookmark, connect, and change all three colours.

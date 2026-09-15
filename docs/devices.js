@@ -1,6 +1,7 @@
 import { BTWebClient, UUID } from './ble.js';
 
 export const STORAGE_KEY = 'btweb.devices.v1';
+export const REMOVED_KEY = 'btweb.removedDevices.v1';
 
 // Browser-scoped IDs identify boards; names are display labels only.
 export class DeviceRegistry {
@@ -10,6 +11,11 @@ export class DeviceRegistry {
     this.changed = changed;
     this.connectionTimeout = connectionTimeout;
     this.rows = new Map();
+    this.removed = new Set();
+    try {
+      const removed = JSON.parse(storage?.getItem(REMOVED_KEY) || '[]');
+      if (Array.isArray(removed)) this.removed = new Set(removed.filter(id => typeof id === 'string'));
+    } catch { /* Optional storage. */ }
     try {
       const saved = JSON.parse(storage?.getItem(STORAGE_KEY) || '[]');
       if (Array.isArray(saved)) for (const entry of saved) {
@@ -50,7 +56,11 @@ export class DeviceRegistry {
             timer = setTimeout(() => reject(new Error('Saved-device lookup timed out.')), 5000);
           }),
         ]);
-        for (const device of devices) this.add(device);
+        for (const device of devices) {
+          if (this.removed.has(device.id)) continue;
+          // Do not replace a freshly selected handle on returning from the picker.
+          if (!this.rows.get(device.id)?.device) this.add(device);
+        }
         this.save();
       } catch (error) {
         restoreMessage = `Could not restore connection: ${error.message || String(error)}`;
@@ -70,7 +80,10 @@ export class DeviceRegistry {
 
   async choose() {
     const device = await this.bluetooth.requestDevice({ filters: [{ services: [UUID.service] }] });
+    this.removed.delete(device.id);
+    this.saveRemoved();
     const row = this.add(device);
+    if (device.name) row.name = device.name;
     row.autoConnect = true;
     this.save();
     this.changed();
@@ -126,6 +139,22 @@ export class DeviceRegistry {
     row.autoConnect = false;
     row.client?.disconnect();
     row.message = 'Auto-connect paused. Tap Connect to resume.';
+    this.save();
+    this.changed();
+  }
+
+  saveRemoved() {
+    try { this.storage?.setItem(REMOVED_KEY, JSON.stringify([...this.removed])); }
+    catch { /* Removal still applies for this page session. */ }
+  }
+
+  remove(row) {
+    if (row.busy) return;
+    row.client?.disconnect();
+    this.rows.delete(row.id);
+    // getDevices may continue returning the browser's old permission record.
+    this.removed.add(row.id);
+    this.saveRemoved();
     this.save();
     this.changed();
   }
