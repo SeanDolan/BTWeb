@@ -41,7 +41,7 @@ All web assets are local to the repository; there are no CDNs, analytics or runt
 
 ## Remote/offline acceptance test
 
-After a failed connection, its device reference is discarded. Tap **Connect** to select the current advertised device directly. If its browser ID changed, the selected device replaces only that row after successful BTWeb service and protocol validation. Cancelling or failing selection preserves the original row. **Remove** is also available for boards you no longer want saved. Removal affects this controller's saved list; it does not revoke Bluefy's Bluetooth permissions. Removed IDs are ignored during automatic restoration until explicitly selected again. Other saved boards are retained.
+Connect always retries the saved device ID; it never opens a picker. Failed references are discarded and retrieved again by exact ID on manual retry. Only Add board opens the picker. For restored devices, the controller waits up to eight seconds for an advertisement when watchAdvertisements is supported, then connects. Enable Allow BLE advertisements in Bluefy for this path. Browsers without this API attempt a direct connection. Remove deletes unwanted saved rows without clearing other boards.
 
 1. Load the Pages URL fully in Bluefy while online. Bookmark that exact URL in Bluefy. Caching runs silently where supported; the page displays no offline-readiness claim.
 2. Turn off Wi-Fi and mobile data, or enable airplane mode and re-enable Bluetooth.

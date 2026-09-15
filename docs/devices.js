@@ -73,7 +73,10 @@ export class DeviceRegistry {
           const row = this.rows.get(device.id);
           // Permission history is not our saved board list. Exact ID match only.
           if (!row || row.failed || this.selecting) continue;
-          if (!row.device && !row.busy && !row.client?.ready) row.device = device;
+          if (!row.device && !row.busy && !row.client?.ready) {
+            row.device = device;
+            row.restored = true;
+          }
         }
         this.save();
       } catch (error) {
@@ -104,6 +107,7 @@ export class DeviceRegistry {
       if (device.name) row.name = device.name;
       row.autoConnect = true;
       row.failed = false;
+      row.restored = false;
       this.save();
       this.changed();
       await this.connect(row);
@@ -116,12 +120,10 @@ export class DeviceRegistry {
 
   async connect(row) {
     if (row.busy || row.client?.ready) return;
-    if (!row.device || row.failed) return this.choose(row);
     row.autoConnect = true;
     this.save();
     row.busy = true;
     row.state = null;
-    const device = row.device;
     row.message = 'Connecting…';
     const client = new BTWebClient(this.bluetooth, state => {
       if (row.client !== client) return;
@@ -138,14 +140,26 @@ export class DeviceRegistry {
     let timer;
     try {
       await Promise.race([
-        client.connect(device),
+        (async () => {
+          if (!row.device) {
+            client.stage = 'Saved device lookup';
+            if (typeof this.bluetooth?.getDevices !== 'function') throw new Error('Browser cannot restore saved device access.');
+            const devices = await this.bluetooth.getDevices();
+            if (row.client !== client || !row.busy) throw new Error('Connection cancelled.');
+            row.device = devices.find(device => device.id === row.id) || null;
+            row.restored = true;
+            if (!row.device) throw new Error('Saved device ID is not available from the browser.');
+          }
+          await client.connect(row.device, row.restored);
+        })(),
         new Promise((_, reject) => {
           timer = setTimeout(() => reject(new Error('Board unavailable. Tap Connect to retry.')), this.connectionTimeout);
         }),
       ]);
       // Restored browser records can have an old name. Persist the name seen
       // on a successful connection instead of replacing it during restore.
-      if (device.name) row.name = device.name;
+      if (!row.restored && row.device.name) row.name = row.device.name;
+      row.failed = false;
       this.save();
       row.message = row.state?.outputAvailable ? 'Connected' : 'Connected · LED unavailable';
     } catch (error) {
@@ -153,7 +167,7 @@ export class DeviceRegistry {
       row.client = null;
       row.device = null;
       row.failed = true;
-      row.message = `${client.stage || 'Connection'}: ${errorText(error)}. Tap Connect to select the board again.`;
+      row.message = `${client.stage || 'Connection'}: ${errorText(error)}. Tap Connect to retry this board.`;
     } finally {
       clearTimeout(timer);
       row.busy = false;

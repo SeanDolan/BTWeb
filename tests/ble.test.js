@@ -2,6 +2,44 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { BTWebClient, decodeState } from '../docs/ble.js';
 
+test('advertisement rediscovery waits for the saved ID and stops watching afterwards', async () => {
+  const client = new BTWebClient(null);
+  const device = new EventTarget();
+  device.id = 'saved';
+  let signal;
+  device.watchAdvertisements = async options => { signal = options.signal; };
+  let done = false;
+  const waiting = client.waitForAdvertisement(device, 100).then(() => { done = true; });
+  const wrong = new Event('advertisementreceived'); wrong.device = { id: 'other' };
+  device.dispatchEvent(wrong);
+  await Promise.resolve();
+  assert.equal(done, false);
+  const right = new Event('advertisementreceived'); right.device = device;
+  device.dispatchEvent(right);
+  await waiting;
+  assert.equal(signal.aborted, true);
+});
+
+test('advertisement denial and cancellation reject cleanly', async () => {
+  const client = new BTWebClient(null);
+  const device = new EventTarget();
+  device.watchAdvertisements = async () => { throw 2; };
+  await assert.rejects(client.waitForAdvertisement(device), error => error === 2);
+  device.watchAdvertisements = async () => {};
+  const waiting = client.waitForAdvertisement(device);
+  client.disconnect();
+  await assert.rejects(waiting, /cancelled/);
+});
+
+test('advertisement silence times out and aborts watching', async () => {
+  const client = new BTWebClient(null);
+  const device = new EventTarget();
+  let signal;
+  device.watchAdvertisements = async options => { signal = options.signal; };
+  await assert.rejects(client.waitForAdvertisement(device, 10), /No advertisement/);
+  assert.equal(signal.aborted, true);
+});
+
 function state(sequence, result = 0) {
   return new DataView(Uint8Array.from([1, sequence, result, 255, 0, 0, 1, 2, 1, 0]).buffer);
 }

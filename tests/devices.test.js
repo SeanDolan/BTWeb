@@ -66,11 +66,28 @@ test('permission history never imports unknown IDs or matches a board by name', 
   assert.equal(registry.rows.get('correct').device, null);
 });
 
-test('failed restored reference is discarded and Connect selects fresh without removing the row', async () => {
+test('restored board is rediscovered before GATT connect without opening a picker', async () => {
+  const a = board('a');
+  let advertised = false;
+  const connect = a.gatt.connect.bind(a.gatt);
+  a.gatt.connect = async () => { assert.equal(advertised, true); return connect(); };
+  a.watchAdvertisements = async () => {
+    queueMicrotask(() => {
+      advertised = true;
+      const event = new Event('advertisementreceived'); event.device = a;
+      a.dispatchEvent(event);
+    });
+  };
+  const registry = new DeviceRegistry({ getDevices: async () => [a], requestDevice() { assert.fail('Picker opened'); } }, storage());
+  await registry.restore();
+  assert.equal(registry.rows.get('a').client.ready, true);
+});
+
+test('failed reference is discarded and Connect retrieves the saved ID again without a picker', async () => {
   const stale = board('a', 'BTWeb-C3'); const fresh = board('a');
   let failures = 0; let selections = 0;
   stale.gatt.connect = async () => { failures++; throw 'Native connection rejected'; };
-  const registry = new DeviceRegistry({ getDevices: async () => [stale], requestDevice: async () => { selections++; return fresh; } }, storage());
+  const registry = new DeviceRegistry({ getDevices: async () => failures ? [fresh] : [stale], requestDevice: async () => { selections++; return fresh; } }, storage());
   await registry.restore();
   const row = registry.rows.get('a');
   assert.equal(row.device, null);
@@ -78,7 +95,7 @@ test('failed restored reference is discarded and Connect selects fresh without r
   await registry.restore();
   assert.equal(failures, 1);
   await registry.connect(row);
-  assert.equal(selections, 1);
+  assert.equal(selections, 0);
   assert.equal(row.device, fresh);
   assert.equal(row.client.ready, true);
 });
@@ -87,7 +104,7 @@ test('reselection replaces only the targeted stale ID after protocol validation'
   const selected = board('new-id'); const saved = storage();
   const registry = new DeviceRegistry({ requestDevice: async () => selected }, saved);
   const old = registry.rows.get('a');
-  await registry.connect(old);
+  await registry.choose(old);
   assert.equal(registry.rows.has('a'), false);
   assert.equal(registry.rows.has('b'), true);
   assert.equal(registry.rows.get('new-id').client.ready, true);
@@ -97,12 +114,12 @@ test('reselection replaces only the targeted stale ID after protocol validation'
 test('cancelled or unsuccessful reselection preserves the original saved board', async () => {
   const registry = new DeviceRegistry({ requestDevice: async () => { throw new Error('Cancelled'); } }, storage());
   const old = registry.rows.get('a');
-  await assert.rejects(registry.connect(old), /Cancelled/);
+  await assert.rejects(registry.choose(old), /Cancelled/);
   assert.equal(registry.rows.get('a'), old);
   const bad = board('bad');
   bad.gatt.getPrimaryService = async () => { throw { code: 42, reason: 'No service' }; };
   registry.bluetooth.requestDevice = async () => bad;
-  await registry.connect(old);
+  await registry.choose(old);
   assert.equal(registry.rows.get('a'), old);
   assert.match(registry.rows.get('bad').message, /BTWeb service discovery.*42/);
 });
@@ -202,7 +219,7 @@ test('a stale restored name cannot overwrite the saved name; connection saves th
   const connect = a.gatt.connect.bind(a.gatt);
   a.gatt.connect = async () => { a.name = 'MNQ-BT-0002'; return connect(); };
   await registry.connect(registry.rows.get('a'));
-  assert.equal(JSON.parse(saved.getItem(STORAGE_KEY))[0].name, 'MNQ-BT-0002');
+  assert.equal(JSON.parse(saved.getItem(STORAGE_KEY))[0].name, 'MNQ-BT-0001');
 });
 
 test('restoration failures are visible instead of silently looking disconnected', async () => {

@@ -31,7 +31,7 @@ export class BTWebClient {
     this.lost = () => this.cleanup();
   }
 
-  async connect(knownDevice) {
+  async connect(knownDevice, rediscover = false) {
     if (this.device) throw new Error('Already connecting or connected.');
     this.device = knownDevice || await this.bluetooth.requestDevice({ filters: [{ services: [UUID.service] }] });
     const device = this.device;
@@ -44,6 +44,11 @@ export class BTWebClient {
     };
     this.device.addEventListener('gattserverdisconnected', this.lost);
     try {
+      if (rediscover && typeof device.watchAdvertisements === 'function') {
+        this.stage = 'Saved board rediscovery';
+        await this.waitForAdvertisement(device);
+        check();
+      }
       this.stage = 'Bluetooth connection';
       const server = await this.device.gatt.connect();
       check();
@@ -75,6 +80,33 @@ export class BTWebClient {
       this.disconnect();
       throw error;
     }
+  }
+
+  waitForAdvertisement(device, timeoutMs = 8000) {
+    return new Promise((resolve, reject) => {
+      const controller = new AbortController();
+      let timer;
+      let finished = false;
+      const finish = error => {
+        if (finished) return;
+        finished = true;
+        clearTimeout(timer);
+        device.removeEventListener('advertisementreceived', received);
+        controller.abort();
+        this.cancelDiscovery = null;
+        if (error !== undefined) reject(error); else resolve();
+      };
+      const received = event => {
+        if (event.device && event.device.id !== device.id) return;
+        finish();
+      };
+      this.cancelDiscovery = () => finish(new Error('Rediscovery cancelled.'));
+      device.addEventListener('advertisementreceived', received);
+      timer = setTimeout(() => finish(new Error('No advertisement received from the saved board.')), timeoutMs);
+      try {
+        Promise.resolve(device.watchAdvertisements({ signal: controller.signal })).catch(finish);
+      } catch (error) { finish(error); }
+    });
   }
 
   accept(view) {
@@ -131,6 +163,7 @@ export class BTWebClient {
   }
 
   cleanup() {
+    this.cancelDiscovery?.();
     this.ready = false;
     this.pending?.reject(new Error('Bluetooth disconnected. Reconnect to read the actual LED state.'));
     this.pending = null;
