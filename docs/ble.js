@@ -16,7 +16,9 @@ export function decodeState(view) {
   };
 }
 
-// One operation in flight. On uncertainty disconnect instead of replaying commands.
+const connectionOwners = new WeakMap();
+
+// One operation in flight per board. On uncertainty disconnect instead of replaying commands.
 export class BTWebClient {
   constructor(bluetooth, onState = () => {}, onDisconnect = () => {}) {
     this.bluetooth = bluetooth;
@@ -29,19 +31,34 @@ export class BTWebClient {
     this.lost = () => this.cleanup();
   }
 
-  async connect() {
+  async connect(knownDevice) {
     if (this.device) throw new Error('Already connecting or connected.');
-    this.device = await this.bluetooth.requestDevice({ filters: [{ services: [UUID.service] }] });
+    this.device = knownDevice || await this.bluetooth.requestDevice({ filters: [{ services: [UUID.service] }] });
     const device = this.device;
+    connectionOwners.set(device, this);
+    const check = () => {
+      if (this.device !== device) {
+        if (connectionOwners.get(device) === this && device.gatt.connected) device.gatt.disconnect();
+        throw new Error('Connection cancelled.');
+      }
+    };
     this.device.addEventListener('gattserverdisconnected', this.lost);
     try {
       const server = await this.device.gatt.connect();
+      check();
       const service = await server.getPrimaryService(UUID.service);
-      this.command = await service.getCharacteristic(UUID.command);
-      this.state = await service.getCharacteristic(UUID.state);
+      check();
+      const command = await service.getCharacteristic(UUID.command);
+      check();
+      const state = await service.getCharacteristic(UUID.state);
+      check();
+      this.command = command;
+      this.state = state;
       this.state.addEventListener('characteristicvaluechanged', this.receive);
       await this.state.startNotifications();
+      check();
       const initial = await this.state.readValue();
+      check();
       if (this.device !== device || !device.gatt.connected) throw new Error('Bluetooth disconnected during setup.');
       this.sequence = decodeState(initial).sequence;
       this.accept(initial);

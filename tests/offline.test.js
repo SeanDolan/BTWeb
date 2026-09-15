@@ -37,8 +37,8 @@ test('installs every controller asset and serves the page with network unavailab
   let installation;
   handlers.install({ waitUntil(promise) { installation = promise; } });
   await installation;
-  assert.equal(entries.size, 6);
-  for (const file of ['', 'index.html', 'app.js', 'ble.js', 'style.css', 'manifest.webmanifest']) {
+  assert.equal(entries.size, 7);
+  for (const file of ['', 'index.html', 'app.js', 'ble.js', 'devices.js', 'style.css', 'manifest.webmanifest']) {
     let response;
     handlers.fetch({ request: { method: 'GET', url: scope + file }, respondWith(promise) { response = promise; } });
     assert.equal((await response).cached, true);

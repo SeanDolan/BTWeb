@@ -3,12 +3,18 @@
 Run the dependency-free browser tests with Node.js 22 or newer:
 
 ```powershell
-node --test tests/ble.test.js tests/offline.test.js
+node --test tests/*.test.js
 ```
 
 Build the actual firmware with the project-local PlatformIO wrapper described in the README. GitHub Actions repeats compilation and browser tests on pushes and pull requests. Compilation cannot verify pins, optical colour, RF reliability or Bluefy's offline browser behaviour.
 
 ## Physical acceptance checklist
+
+- Add two boards, confirm separate rows, and change red, blue, green and off independently.
+- Reopen the page and return from another app: previously authorised boards should connect without a picker where Bluefy provides their permissions.
+- Turn one board off; its timeout must not block the other board's controls.
+- Use a row's Disconnect button, reopen the page, and verify it stays disconnected until Connect is tapped.
+- Give two boards the same advertised name and confirm commands still target the selected row.
 
 - Confirm uploader detects ESP32-C3 and 4 MB flash; verify board variant and USB connection.
 - Boot without a serial monitor: dim red during startup, blue blink while advertising.
@@ -22,7 +28,14 @@ Build the actual firmware with the project-local PlatformIO wrapper described in
 - Perform the full no-internet / cold-browser test in README; test again after an iPhone restart.
 - Measure main-loop latency and Bluetooth control under the intended future ESP-NOW load before claiming network readiness.
 
-Record iPhone model, iOS version, Bluefy version, board markings, flash capacity and observed RGB order with the results. No physical ESP32 or iPhone has been tested by the coding agent.
+Record iPhone model, iOS version, Bluefy version, board markings, flash capacity and observed RGB order with the results. Multiple physical boards in Bluefy have not been tested by the coding agent.
+
+## Multi-device controller checks (2026-09-16)
+
+- Protocol, device registry, page interaction and cache tests: 18 passed using simulated Bluetooth devices and a minimal DOM.
+- Verified independent colour/off routing, duplicate names, permission restoration without a picker, manual disconnect persistence, unavailable storage, isolated timeouts, and late connection completion after a retry.
+- The page interaction check verifies five cells per board and a single off-button click targeting only that board. It does not verify iPhone rendering or Bluefy's actual permission persistence.
+- Firmware is unchanged for this controller update; physical multi-board acceptance remains to be performed in Bluefy.
 
 ## Recorded local results (2026-09-09)
 

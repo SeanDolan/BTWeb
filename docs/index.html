@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#101b29">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; worker-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'self'">
-  <title>BTWeb · LED control</title>
+  <title>BTWeb · Device control</title>
   <link rel="stylesheet" href="./style.css">
   <link rel="manifest" href="./manifest.webmanifest">
   <script type="module" src="./app.js"></script>
@@ -13,27 +13,20 @@
 <body>
   <main>
     <p class="eyebrow">BTWEB / ESP32</p>
-    <h1>A little light.<br>A direct connection.</h1>
-    <p>Connect to MNQ-BT-0001 to control your board over Bluetooth.</p>
-    <section aria-label="Connection">
-      <p id="connection" role="status">Disconnected</p>
-      <div class="actions">
-        <button id="connect">Connect board</button>
-        <button id="disconnect" disabled>Disconnect</button>
-      </div>
+    <h1>Your boards.<br>One touch.</h1>
+    <p>We try reconnecting saved boards when you open this page. Tap a colour in a board's row to change its LED; the blank button turns it off.</p>
+    <button id="connect">Add board</button>
+    <p id="message" role="status"></p>
+    <section aria-label="Device controls">
+      <table>
+        <caption class="sr-only">Bluetooth boards and LED controls</caption>
+        <colgroup><col class="name-column"><col><col><col><col></colgroup>
+        <thead><tr><th scope="col">Device</th><th scope="col">Red</th><th scope="col">Blue</th><th scope="col">Green</th><th scope="col"><span class="sr-only">Off</span></th></tr></thead>
+        <tbody id="devices"></tbody>
+      </table>
+      <p id="empty">Add your first board to get started.</p>
     </section>
-    <section aria-label="LED controls">
-      <h2>Choose a colour</h2>
-      <div class="colours">
-        <button data-colour="255,0,0" class="red" disabled>Red</button>
-        <button data-colour="0,255,0" class="green" disabled>Green</button>
-        <button data-colour="0,0,255" class="blue" disabled>Blue</button>
-        <button data-colour="0,0,0" disabled>Off</button>
-      </div>
-      <p id="state" aria-live="polite">Connect to read the board’s LED state.</p>
-      <p id="message" role="status"></p>
-    </section>
-    <footer>Keep Bluefy in the foreground while controlling your board.</footer>
+    <footer>Keep Bluefy in the foreground while controlling your boards.</footer>
   </main>
 </body>
 </html>

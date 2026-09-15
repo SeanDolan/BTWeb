@@ -1,56 +1,86 @@
-import { BTWebClient } from './ble.js';
+import { DeviceRegistry } from './devices.js';
 
 const byId = id => document.getElementById(id);
-const colours = [...document.querySelectorAll('[data-colour]')];
-let busy = false;
-let outputAvailable = false;
 const supported = window.isSecureContext && Boolean(navigator.bluetooth);
-const client = new BTWebClient(navigator.bluetooth, state => {
-  outputAvailable = state.outputAvailable;
-  byId('state').textContent = `Board reports RGB ${state.rgb.join(', ')} · dropped commands: ${state.dropped}`;
-}, () => {
-  byId('connection').textContent = 'Disconnected';
-  byId('state').textContent = 'Disconnected. Reconnect to read the current LED state.';
-  updateButtons();
+const colours = [
+  { name: 'Red', css: 'red', rgb: [255, 0, 0] },
+  { name: 'Blue', css: 'blue', rgb: [0, 0, 255] },
+  { name: 'Green', css: 'green', rgb: [0, 255, 0] },
+  { name: 'Off', css: 'off', rgb: [0, 0, 0] },
+];
+let storage;
+try { storage = window.localStorage; } catch { /* Optional. */ }
+const views = new Map();
+const registry = new DeviceRegistry(navigator.bluetooth, storage, render);
+
+function render() {
+  byId('empty').hidden = registry.rows.size > 0;
+  for (const row of registry.rows.values()) {
+    let view = views.get(row.id);
+    if (!view) {
+      const tr = document.createElement('tr');
+      const cell = document.createElement('th');
+      cell.scope = 'row';
+      const name = document.createElement('span');
+      name.className = 'device-name';
+      const status = document.createElement('span');
+      status.className = 'device-status';
+      status.setAttribute('role', 'status');
+      const action = document.createElement('button');
+      action.className = 'connection-action';
+      action.addEventListener('click', async () => {
+        byId('message').textContent = '';
+        try {
+          if (row.client?.ready) registry.disconnect(row);
+          else await registry.connect(row);
+        } catch (error) { byId('message').textContent = error.message; }
+      });
+      cell.append(name, status, action);
+      tr.append(cell);
+      const buttons = colours.map(colour => {
+        const td = document.createElement('td');
+        const button = document.createElement('button');
+        button.className = 'swatch ' + colour.css;
+        button.addEventListener('click', () => registry.colour(row, colour.rgb));
+        td.append(button);
+        tr.append(td);
+        return button;
+      });
+      byId('devices').append(tr);
+      view = { name, status, action, buttons };
+      views.set(row.id, view);
+    }
+    view.name.textContent = row.name;
+    view.status.textContent = row.message;
+    view.action.textContent = row.client?.ready ? 'Disconnect' : 'Connect';
+    view.action.disabled = !supported || row.busy;
+    view.action.setAttribute('aria-label', view.action.textContent + ' ' + row.name);
+    view.buttons.forEach((button, index) => {
+      const colour = colours[index];
+      button.disabled = row.busy || !row.client?.ready || !row.state?.outputAvailable;
+      button.setAttribute('aria-label', row.name + ': ' + colour.name);
+      button.setAttribute('aria-pressed', String(Boolean(row.client?.ready &&
+        row.state?.rgb.every((value, i) => value === colour.rgb[i]))));
+    });
+  }
+}
+
+byId('connect').disabled = !supported;
+byId('connect').addEventListener('click', async () => {
+  byId('connect').disabled = true;
+  byId('message').textContent = '';
+  try { await registry.choose(); }
+  catch (error) { if (error.name !== 'NotFoundError') byId('message').textContent = error.message; }
+  finally { byId('connect').disabled = !supported; }
+});
+if (!supported) byId('message').textContent = 'Open the HTTPS page in Bluefy with Bluetooth permission enabled.';
+render();
+if (supported) registry.restore();
+document.addEventListener('visibilitychange', () => {
+  if (supported && document.visibilityState === 'visible') registry.restore();
 });
 
-function updateButtons() {
-  byId('connect').disabled = !supported || busy || client.ready;
-  byId('disconnect').disabled = !client.ready || busy;
-  colours.forEach(button => { button.disabled = !client.ready || busy || !outputAvailable; });
-}
-
-async function run(action) {
-  busy = true;
-  byId('message').textContent = '';
-  updateButtons();
-  try { await action(); }
-  catch (error) { byId('message').textContent = error.message || String(error); }
-  finally { busy = false; updateButtons(); }
-}
-
-byId('connect').addEventListener('click', () => run(async () => {
-  byId('connection').textContent = 'Connecting…';
-  try {
-    await client.connect();
-    byId('connection').textContent = `Connected to ${client.device.name || 'MNQ-BT-0001'}`;
-    if (!outputAvailable) byId('message').textContent = 'Firmware has no LED output configured.';
-  } catch (error) {
-    byId('connection').textContent = 'Disconnected';
-    throw error;
-  }
-}));
-byId('disconnect').addEventListener('click', () => client.disconnect());
-colours.forEach(button => button.addEventListener('click', () => run(async () => {
-  await client.send(1, button.dataset.colour.split(',').map(Number));
-  byId('message').textContent = 'Colour confirmed by board.';
-})));
-if (!supported) byId('message').textContent = 'Open the HTTPS page in Bluefy with Bluetooth permission enabled.';
-updateButtons();
-
-// Cache the controller where supported; browser storage support is not a UI error.
+// Cache silently where supported; Bluefy may also retain its own browser cache.
 if (window.isSecureContext && 'serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js').catch(() => {
-    // The browser may still retain the page through its own cache.
-  });
+  navigator.serviceWorker.register('./sw.js').catch(() => {});
 }

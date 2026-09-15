@@ -30,8 +30,12 @@ Replace `COM7` with the actual device port. Nothing automatically flashes a conn
 1. The project repository is [SeanDolan/BTWeb](https://github.com/SeanDolan/BTWeb). Push changes to `main`; ignored build/tool folders must stay excluded.
 2. In repository **Settings → Pages**, choose **Deploy from a branch**, your main branch, and `/docs`.
 3. Open `https://seandolan.github.io/BTWeb/` in **Bluefy** on your iPhone.
-4. Enable Bluetooth and grant Bluefy Bluetooth permission. Tap **Connect board** and choose `MNQ-BT-0001` in the browser's device picker. No prior pairing in iPhone Settings is required.
-5. Tap Red, Green, Blue or Off. Success is shown only after the ESP32 acknowledges the command.
+4. Enable Bluetooth and grant Bluefy Bluetooth permission. Tap **Add board** and choose `MNQ-BT-0001` in the browser's device picker. Repeat to add more boards. No prior pairing in iPhone Settings is required.
+5. Each device has a table row: **Device | Red | Blue | Green | blank**. Tap a colour once to set that board's LED, or the blank button to turn it off. The selection reflects the state acknowledged by that board.
+
+The page stores multiple device IDs and names locally. On opening the page or returning it to the foreground, it uses `navigator.bluetooth.getDevices()` to retrieve previously authorised devices and attempts their connections independently. The previous single-board permission can be discovered this way too. Names are labels; browser device IDs distinguish boards even when names match. Each board still accepts one phone connection, while the page can manage several boards.
+
+**Disconnect** stops automatic reconnection for that row, including after reopening; tap its **Connect** button to enable it again. An unavailable board times out after 12 seconds without blocking other rows. There is no continuous background scanning or retry loop. If Bluefy cannot return a previously authorised device, use **Connect** or **Add board** to select it again. Persistent storage and device permissions depend on the browser; live control still works if local storage is unavailable.
 
 All web assets are local to the repository; there are no CDNs, analytics or runtime package downloads. Relative URLs support arbitrary repository names. `docs/.nojekyll` allows direct static hosting. CI builds and tests the project; publishing is controlled by your Pages settings.
 
