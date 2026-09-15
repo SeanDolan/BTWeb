@@ -20,9 +20,10 @@ bool BTWeb::begin(const char* name, ColorHandler handler, void* context) {
     publish(false);
     service->start();
     auto* advertising = NimBLEDevice::getAdvertising();
-    advertising->addServiceUUID(serviceUuid);
-    advertising->setName(name);
+    // The 128-bit service UUID leaves too little room for longer names in the
+    // 31-byte advertisement. Enable scan response before assigning the name.
     advertising->enableScanResponse(true);
+    if (!advertising->addServiceUUID(serviceUuid) || !advertising->setName(name)) return false;
     return advertising->start();
 }
 
